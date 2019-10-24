@@ -11,12 +11,46 @@ class Image_Generator(object):
         self.size = size
         self.noisy = noisy
         self.blur = blur
+        self.num_lines = 32
+        self.rand_range = self.size // 5
+        np.random.seed(seed=101010)
 
 
     # an image is a 2d numpy array
     def get_new_image(self):
         if self.mode is None:
             image = np.random.randint(128, size=(self.size, self.size), dtype=np.uint8)
+        elif self.mode == 'curve':
+            self.num_lines
+            boundary = np.zeros(self.num_lines + 1)
+            boundary[0] = np.random.randint(self.size)
+            for i in range(1, self.num_lines + 1):
+                boundary[i] = np.random.randint(self.rand_range) - self.rand_range // 2
+                boundary[i] += boundary[i - 1]
+                boundary[i] = min(boundary[i], self.size)
+                boundary[i] = max(boundary[i], 0)
+
+            image = np.zeros((self.size, self.size), dtype=np.uint8)
+
+            sec_size = self.size // self.num_lines
+            for x in range(self.size):
+                for y in range(self.size):
+                    sec_num = y // sec_size
+                    if y % sec_size == 0:
+                        if x >= boundary[sec_num]:
+                            image[x, y] = 255
+                        else:
+                            image[x, y] = 0
+                    else:
+                        x_1, y_1 = max(boundary[sec_num], boundary[sec_num + 1]), sec_size * sec_num
+                        x_2, y_2 = min(boundary[sec_num], boundary[sec_num + 1]), sec_size * (sec_num + 1)
+
+                        if y - y_1 > (y_2 - y_1) / (x_2 - x_1) * (x - x_1):
+                            image[x, y] = 255
+                        else:
+                            image[x, y] = 0 
+
+
         elif self.mode == 'halfspace':
             image = np.zeros((self.size, self.size), dtype=np.uint8)
 
@@ -74,7 +108,8 @@ class Image_Generator(object):
 
 
 if __name__ == '__main__':
-    ig = Image_Generator(mode='halfspace', noisy=True, blur=True)
+    ig = Image_Generator(mode='curve', 
+        noisy=False, blur=False)
     img = ig.get_new_image()
     img = Image.fromarray(img, 'L')
     img.save("temp.png")
