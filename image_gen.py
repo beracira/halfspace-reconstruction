@@ -5,11 +5,12 @@ import logging
 class Image_Generator(object):
     """docstring for Image_Generator."""
 
-    def __init__(self, size=512, mode=None, noisy=False):
+    def __init__(self, size=512, mode=None, noisy=False, blur=False):
         super(Image_Generator, self).__init__()
         self.mode = mode
         self.size = size
         self.noisy = noisy
+        self.blur = blur
 
 
     # an image is a 2d numpy array
@@ -46,7 +47,7 @@ class Image_Generator(object):
                             image[x, y] = 0 
 
         if self.noisy is True:
-            mask = np.random.randint(48, size=(self.size, self.size), dtype=np.uint8)
+            mask = np.random.randint(64, size=(self.size, self.size), dtype=np.uint8)
 
             for x in range(self.size):
                 for y in range(self.size):
@@ -55,11 +56,25 @@ class Image_Generator(object):
                     else:
                         image[x, y] += mask[x, y]
 
+        if self.blur is True:
+            temp = np.zeros((self.size, self.size), dtype=np.uint8)
+
+            blur_radius = 10
+            for x in range(self.size):
+                for y in range(self.size):
+                    acc = 0
+                    t, b = max(0, x - blur_radius), min(self.size - 1, x + blur_radius)
+                    l, r = max(0, y - blur_radius), min(self.size - 1, y + blur_radius)
+                    sub_arr = image[t:b, l:r]
+                    temp[x, y] = np.mean(sub_arr)
+
+            image = temp
+
         return image
 
 
 if __name__ == '__main__':
-    ig = Image_Generator(mode='halfspace', noisy=True)
+    ig = Image_Generator(mode='halfspace', noisy=True, blur=True)
     img = ig.get_new_image()
     img = Image.fromarray(img, 'L')
     img.save("temp.png")
