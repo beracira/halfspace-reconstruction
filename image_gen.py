@@ -13,7 +13,7 @@ class Image_Generator(object):
         self.blur = blur
         self.num_lines = 32
         self.rand_range = self.size // 5
-        np.random.seed(seed=101010)
+        np.random.seed(seed=1010)
 
 
     # an image is a 2d numpy array
@@ -112,5 +112,5 @@ if __name__ == '__main__':
         noisy=False, blur=False)
     img = ig.get_new_image()
     img = Image.fromarray(img, 'L')
-    img.save("temp.png")
+    img.save("original.png")
     print (img)
