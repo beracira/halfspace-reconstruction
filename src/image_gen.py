@@ -17,7 +17,7 @@ class Image_Generator(object):
 
 
     # an image is a 2d numpy array
-    def get_new_image(self):
+    def get_new_image_pair(self):
         if self.mode is None:
             image = np.random.randint(128, size=(self.size, self.size), dtype=np.uint8)
         elif self.mode == 'curve':
@@ -49,8 +49,6 @@ class Image_Generator(object):
                             image[x, y] = 255
                         else:
                             image[x, y] = 0 
-
-
         elif self.mode == 'halfspace':
             image = np.zeros((self.size, self.size), dtype=np.uint8)
 
@@ -80,6 +78,8 @@ class Image_Generator(object):
                         else:
                             image[x, y] = 0 
 
+        original = np.copy(image)
+
         if self.noisy is True:
             mask = np.random.randint(64, size=(self.size, self.size), dtype=np.uint8)
 
@@ -104,13 +104,14 @@ class Image_Generator(object):
 
             image = temp
 
-        return image
-
+        return (original, image)
 
 if __name__ == '__main__':
     ig = Image_Generator(mode='curve', 
         noisy=False, blur=False)
-    img = ig.get_new_image()
-    img = Image.fromarray(img, 'L')
-    img.save("original.png")
+    original, filtered = ig.get_new_image_pair()
+    img = Image.fromarray(original, 'L')
+    img.save("result/original.png")
+    img = Image.fromarray(filtered, 'L')
+    img.save("result/filtered.png")
     print (img)

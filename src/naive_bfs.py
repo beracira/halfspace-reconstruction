@@ -7,7 +7,7 @@ image_size = 512
 
 ig = Image_Generator(size=image_size, mode='curve', 
     noisy=True, blur=True)
-original = ig.get_new_image()
+original, filtered = ig.get_new_image_pair()
 
 queue = deque()
 
@@ -29,8 +29,11 @@ while queue:
     queue.append((x, y + 1))
     added[x, y + 1] = 1
 
-result = Image.fromarray(result, 'L')
-result.save("processed.png")
 original = Image.fromarray(original, 'L')
-original.save("original.png")
+original.save("result/original.png")
+filtered = Image.fromarray(filtered, 'L')
+filtered.save("result/filtered.png")
+result = Image.fromarray(result, 'L')
+result.save("result/processed.png")
+
 print (result)
