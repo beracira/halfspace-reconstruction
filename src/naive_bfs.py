@@ -3,6 +3,7 @@ from collections import deque
 import numpy as np
 from PIL import Image
 
+THRESHOLD = 196
 image_size = 512
 
 ig = Image_Generator(size=image_size, mode='curve', 
@@ -20,7 +21,7 @@ added = np.zeros((image_size, image_size), dtype=np.uint8)
 while queue:
   cur = queue.popleft()
   x, y = cur
-  if original[x, y] >= 196:
+  if original[x, y] >= THRESHOLD:
     result[x, y] = 255
   if x + 1 < image_size and added[x + 1, y] == 0:
     queue.append((x + 1, y))
