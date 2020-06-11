@@ -4,15 +4,22 @@ from collections import deque
 import numpy as np
 from PIL import Image
 
+pixel_counter = 0
+
+def similar_color(x, y):
+    return abs(x - y) > 32
+
 def find_change_point(line):
     counter = 0
     i = 0
     j = line.shape[0] - 1
     while counter < 20 and i < j:
+        global pixel_counter
+        pixel_counter += 1
         mid = (i + j) // 2
-        if line[mid] != line[mid + 1]:
+        if not similar_color(line[mid], line[mid + 1]):
             return mid
-        elif line[i] == line[mid]:
+        elif similar_color(line[i], line[mid]):
             i = mid + 1
         else:
             j = mid
@@ -25,12 +32,15 @@ def is_on_line(p1, p2, target):
         return 1
     return 0
 
-def get_num_black_pts(img):
+def get_black_pts(img):
     top_left = img[0, 0]
     top_right = img[0, -1]
     bot_left = img[-1, 0]
     bot_right = img[-1, -1]
-    return int(sum((top_left, top_right, bot_left, bot_right)))
+    corner_arr = np.array((top_left, top_right, bot_left, bot_right))
+    avg = np.mean(corner_arr)
+    return *(corner_arr > avg * 1.1), corner_arr[corner_arr > avg * 1.1].shape[0]
+
 
 def recursion_helper(retval, img):
     height, width = img.shape
@@ -46,19 +56,17 @@ def find_halfspace(img):
 
     height, width = img.shape
     retval = np.zeros((height, width), dtype=np.uint8)
-    if height >= 8:
+    if height >= 4:
         recursion_helper(retval, img)
         return retval
 
     if height <= 1: 
         return retval
 
-    top_left = img[0, 0]
-    top_right = img[0, -1]
-    bot_left = img[-1, 0]
-    bot_right = img[-1, -1]
+    global pixel_counter
+    # pixel_counter += 4
 
-    num_black_pts = get_num_black_pts(img)
+    top_left, top_right, bot_left, bot_right, num_black_pts = get_black_pts(img)
 
     if num_black_pts == 0 or num_black_pts == 4:
         recursion_helper(retval, img)
@@ -66,26 +74,24 @@ def find_halfspace(img):
         # find boundary
         # print (img)
         if num_black_pts == 3:
-            img = np.where((img==0)|(img==1), img^1, img)
-            top_left = img[0, 0]
-            top_right = img[0, -1]
-            bot_left = img[-1, 0]
-            bot_right = img[-1, -1]
+            top_left = not top_left
+            top_right = not top_right
+            bot_left = not bot_left
+            bot_right = not bot_right
         first, second = None, None
-        if top_left == 1:
+        if top_left == True:
             first = (0, find_change_point(img[0, :]))
             second = (find_change_point(img[:, 0]), 0)
-        elif top_right == 1:
+        elif top_right == True:
             first = (0, find_change_point(img[0, :]))
             second = (find_change_point(img[:, -1]), width - 1)
-        elif bot_left == 1:
+        elif bot_left == True:
             first = (find_change_point(img[:, 0]), 0)
             second = (height - 1, find_change_point(img[-1, :]))
         else:
             first = (find_change_point(img[:, -1]), width - 1)
             second = (height - 1, find_change_point(img[-1, :]))
         first, second = np.array(first), np.array(second)
-        print (first, second)
         for i in range(height):
             for j in range(width):
                 retval[i, j] = is_on_line(first, second, np.array((i, j)))
@@ -102,7 +108,6 @@ def find_halfspace(img):
             else:
                 print ("something went wrong...")
             first, second = np.array(first), np.array(second)
-            print (first, second)
             for i in range(height):
                 for j in range(width):
                     retval[i, j] = is_on_line(first, second, np.array((i, j)))
@@ -112,23 +117,26 @@ def find_halfspace(img):
 image_size = 512
 
 print ("Generating testing image pair...")
-ig = Image_Generator(size=image_size, mode='curve', 
-    noisy=True, blur=True)
-original, filtered = ig.get_new_image_pair()
-img = Image.fromarray(original, 'L')
-img.save("result/original.png")
+image = cv.imread('result/1ji.png', cv.IMREAD_GRAYSCALE)
+print (image)
 
-img = np.tri(N=512, M=512, k=2, dtype=np.uint8)
-img = np.fliplr(img)
+# ig = Image_Generator(size=image_size, mode='curve', 
+#     noisy=True, blur=True)
+# original, filtered = ig.get_new_image_pair()
+# img = Image.fromarray(original, 'L')
+# img.save("result/original.png")
+
+# img = np.tri(N=512, M=512, k=2, dtype=np.uint8)
+# img = np.fliplr(img)
 # img *= 255
-print (img)
-print (original)
-original = original // 255
-print (original)
+# print (img)
+# print (filtered)
 print ("Finding boundary on testing image...")
-edges = find_halfspace(original)
+edges = find_halfspace(image)
 edges *= 255
 print (edges)
 
 img = Image.fromarray(edges, 'L')
 img.save("result/binary_search.png")
+
+print ("Total number of pixels seen:", pixel_counter)
