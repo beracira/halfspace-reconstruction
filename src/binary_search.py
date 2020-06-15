@@ -6,9 +6,6 @@ from PIL import Image
 from timeit import default_timer as timer
 
 
-pixel_counter = 0
-counter_arr = None
-
 def similar_color(x, y):
     return(np.uint8(np.absolute(np.int16(x)-np.int16(y)))) > 32
     # return np.abs(x - y) > 32
@@ -39,16 +36,19 @@ def is_on_line(p1, p2, target):
         return 1
     return 0
 
+counter = 0
 def get_black_pts(img, x, y, counter_arr):
+    global counter
+    counter += 1
     height, width = img.shape
     top_left = img[0, 0]
     top_right = img[0, -1]
     bot_left = img[-1, 0]
     bot_right = img[-1, -1]
-    counter_arr[x, y] += 1
-    counter_arr[x + height - 1, y] += 1
-    counter_arr[x, y + width - 1] += 1
-    counter_arr[x + height - 1, y + width - 1] += 1  
+    counter_arr[x, y] = 1
+    counter_arr[x + height - 1, y] =1
+    counter_arr[x, y + width - 1] = 1
+    counter_arr[x + height - 1, y + width - 1] = 1  
 
     corner_arr = np.array((top_left, top_right, bot_left, bot_right))
     avg = np.mean(corner_arr)
@@ -63,7 +63,7 @@ def recursion_helper(retval, img, counter_arr, x, y, min_length):
     retval[height // 2:, width // 2:] = find_halfspace(img[height // 2:, width // 2:], counter_arr, x + height // 2, y + width // 2, min_length)
 
 def recursion_wrapper(args):
-    return find_halfspace(*args)
+    return (find_halfspace(*args), args[1])
 
 def find_halfspace(img, counter_arr, x=0, y=0, min_length=4):
     """
@@ -82,7 +82,8 @@ def find_halfspace(img, counter_arr, x=0, y=0, min_length=4):
     top_left, top_right, bot_left, bot_right, num_black_pts = get_black_pts(img, x, y, counter_arr)
 
     if num_black_pts == 0 or num_black_pts == 4:
-        recursion_helper(retval, img, counter_arr, x, y, min_length)
+        # recursion_helper(retval, img, counter_arr, x, y, min_length)
+        pass
     elif num_black_pts == 1 or num_black_pts == 3:
         # find boundary
         if num_black_pts == 3:
@@ -130,12 +131,10 @@ from multiprocessing import Pool
 import sys
 
 input_filename = 'result/' + sys.argv[1] 
-# output_filename = 'result/edges_' + sys.argv[1]
 if __name__ == '__main__':
     with Pool(8) as p:
 
 
-        # image_size = 512
         print ("Generating testing image pair...")
         image = cv.imread(input_filename, cv.IMREAD_GRAYSCALE)
         height, width = image.shape
@@ -153,37 +152,25 @@ if __name__ == '__main__':
                     temp[x, y] = np.mean(sub_arr)
             image = temp
 
-        # grid_height = height // 3
-        # grid_width = width // 3
-        # temp = np.vsplit(image, np.array([grid_height, grid_height * 2]))
-        # blocks = []
-        # for each in temp:
-        #     blocks += list(np.hsplit(each, np.array([grid_width, grid_width * 2])))
-
-        # print ("Finding boundary on testing image...")
+        print ("Finding boundary on testing image...")
         counter_arr = np.zeros(image.shape, dtype=np.uint8)
-        # edges = find_halfspace(image, 0, 0)
 
         data = []
-        for i in range(4):
+        for i in range(5):
             data += [(image.copy(), counter_arr.copy(), 0, 0, 2 ** (2 + i))]
 
-        # start = timer()
-        # recursion_wrapper(data[0])
         ans = p.map(recursion_wrapper, data)
-        # for i in range(3):
-        #     temp += [np.hstack(ans[3 * i: 3 * i + 3])]
-        # edges = np.vstack(temp)
-        # edges *= 255
-        # end = timer()
-        # print (end - start)
-
         for i, each in enumerate(ans):
-            each *= 255
-            img = Image.fromarray(each, 'L')
-            output_filename = 'result/edges_' + repr(2 ** (2 + i)) + '_' + sys.argv[1]
+            edges = each[0]
+            counter_arr = each[1]
+            edges *= 255
+            img = Image.fromarray(edges, 'L')
+            output_filename = 'result/edges_' + repr(data[i][-1]) + '_' + sys.argv[1]
+            print ("Total number of pixels in the image:", height * width)
+            print ("Total number of pixels seen:", np.sum(counter_arr))
+            print ("Total %% of pixels seen:", np.sum(counter_arr) / height / width * 100)
             print ('saving to', output_filename)
+            print ('')
             img.save(output_filename)
 
 
-        # print ("Total number of pixels seen:", np.sum(counter_arr) + pixel_counter)
