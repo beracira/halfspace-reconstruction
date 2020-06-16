@@ -10,13 +10,14 @@ def similar_color(x, y):
     return(np.uint8(np.absolute(np.int16(x)-np.int16(y)))) > 32
     # return np.abs(x - y) > 32
 
+pixel_counter = 0
 def find_change_point(line):
     counter = 0
     i = 0
     j = line.shape[0] - 1
     while counter < 20 and i < j:
-        # global pixel_counter
-        # pixel_counter += 2
+        global pixel_counter
+        pixel_counter += 2
         mid = (i + j) // 2
         if not similar_color(line[mid], line[mid + 1]):
             return mid
@@ -36,10 +37,7 @@ def is_on_line(p1, p2, target):
         return 1
     return 0
 
-counter = 0
 def get_black_pts(img, x, y, counter_arr):
-    global counter
-    counter += 1
     height, width = img.shape
     top_left = img[0, 0]
     top_right = img[0, -1]
@@ -63,7 +61,11 @@ def recursion_helper(retval, img, counter_arr, x, y, min_length):
     retval[height // 2:, width // 2:] = find_halfspace(img[height // 2:, width // 2:], counter_arr, x + height // 2, y + width // 2, min_length)
 
 def recursion_wrapper(args):
-    return (find_halfspace(*args), args[1])
+    temp = find_halfspace(*args)
+    height, width = args[0].shape
+    print ("Total %% of pixels seen:", (np.sum(args[1]) + pixel_counter) / height / width * 100)
+    print (args[-1])
+    return (temp, args[1])
 
 def find_halfspace(img, counter_arr, x=0, y=0, min_length=4):
     """
