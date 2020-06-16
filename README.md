@@ -2,9 +2,9 @@
 A computer vision project that aims to solve half space reconstruction of grayscale images. 
 
 # Usage
-## If you docker installed...
+## If you have docker installed...
 
-[run.sh](run.sh) builds the image and mounts src direction into the container. Move the image you want to use into ``src/result`` on the local machine and run 
+[run.sh](run.sh) builds the image and mounts src direction into the container. Move the image you want to use into ``src/result`` on the local machine and run within ``src`` 
 
 ```
 python3 binary_search.py imagename
